@@ -8,6 +8,11 @@ For a server without a domain, use `infra/compose.private.yaml`. It keeps the AP
 ports on `127.0.0.1`; access the workbench only through an SSH tunnel. Do not expose port
 `8000` in the cloud firewall because this mode has no browser authentication or TLS.
 
+To deliberately expose the unauthenticated HTTP workbench by public IP, set
+`API_BIND_ADDRESS=0.0.0.0` in `.env` and allow TCP `8000` in the cloud firewall. This sends
+questions and results without encryption and lets public visitors consume the configured
+model API quota; use it only as a temporary demo.
+
 ## 1. Prepare the server
 
 Point the domain's `A` record at the server before starting Caddy. In the cloud firewall,
