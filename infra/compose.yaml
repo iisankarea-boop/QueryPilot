@@ -104,6 +104,9 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     env_file:
       - ../.env
     ports:
@@ -133,6 +136,9 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     profiles: ["tools"]
     env_file:
       - ../.env
@@ -145,6 +151,9 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     profiles: ["tools"]
     env_file:
       - ../.env
@@ -162,6 +171,9 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     profiles: ["tools"]
     env_file:
       - ../.env
@@ -176,6 +188,9 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+      args:
+        NPM_CONFIG_REGISTRY: ${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     profiles: ["tools"]
     env_file:
       - ../.env

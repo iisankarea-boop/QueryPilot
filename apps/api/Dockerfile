@@ -1,5 +1,7 @@
 FROM node:22.14-alpine AS web-builder
 
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org
+
 WORKDIR /web
 
 COPY apps/web/package.json apps/web/package-lock.json ./
@@ -9,6 +11,8 @@ COPY apps/web ./
 RUN npm run build
 
 FROM python:3.12.9-slim-bookworm
+
+ARG PIP_INDEX_URL=https://pypi.org/simple
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
