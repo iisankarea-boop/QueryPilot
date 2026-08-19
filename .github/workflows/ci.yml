@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev,postgres]"
+      - name: Lint
+        run: python -m ruff check apps/api/src apps/api/tests infra/scripts evals
+      - name: Type check
+        run: python -m mypy apps/api/src/querypilot
+      - name: Test
+        run: python -m pytest
+      - name: Validate evaluation cases
+        run: python -m evals.runner --validate-only
+      - name: Evaluation regression gate
+        run: >-
+          python -m evals.ci_gate
+          --report evals/reports/current.json
+          --baseline evals/baseline.json
+
+  production-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell scripts
+        run: >-
+          bash -n infra/scripts/backup.sh infra/scripts/check-production-env.sh
+          infra/scripts/deploy.sh infra/scripts/verify-deployment.sh
+      - name: Confirm example environment is rejected for production
+        run: |
+          if bash infra/scripts/check-production-env.sh .env.production.example; then
+            echo 'Example production secrets were unexpectedly accepted.' >&2
+            exit 1
+          fi
+      - name: Validate production Compose merge
+        run: >-
+          docker compose --env-file .env.production.example
+          -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
+      - name: Reject likely committed API keys
+        run: |
+          if rg -n 'sk-[A-Za-z0-9_-]{16,}' --glob '*.py' --glob '*.ts' --glob '*.tsx'; then
+            echo 'Possible API key committed to source.' >&2
+            exit 1
+          fi

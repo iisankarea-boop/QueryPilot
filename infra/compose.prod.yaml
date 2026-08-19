@@ -1,0 +1,70 @@
+x-json-logging: &json-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  postgres:
+    ports: !reset []
+    volumes:
+      - ${BACKUP_ROOT:-./backups}/postgres:/backups
+    logging: *json-logging
+
+  arangodb:
+    ports: !reset []
+    volumes:
+      - ${BACKUP_ROOT:-./backups}/arango:/backups
+    logging: *json-logging
+
+  etcd:
+    logging: *json-logging
+
+  minio:
+    logging: *json-logging
+
+  milvus-standalone:
+    ports: !reset []
+    logging: *json-logging
+
+  api:
+    ports: !reset []
+    environment:
+      APP_ENV: production
+      TRUST_PROXY_HEADERS: "true"
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-20}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      READINESS_TIMEOUT_SECONDS: ${READINESS_TIMEOUT_SECONDS:-3}
+      SOURCE_ALLOWED_HOSTS: ${SOURCE_ALLOWED_HOSTS:-arangodb}
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    logging: *json-logging
+
+  caddy:
+    image: caddy:2.10.0-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be configured}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL must be configured}
+      DEMO_USERNAME: ${DEMO_USERNAME:?DEMO_USERNAME must be configured}
+      DEMO_PASSWORD_HASH: ${DEMO_PASSWORD_HASH:?DEMO_PASSWORD_HASH must be configured}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    mem_limit: 192m
+    restart: unless-stopped
+    logging: *json-logging
+
+volumes:
+  caddy-data:
+  caddy-config:

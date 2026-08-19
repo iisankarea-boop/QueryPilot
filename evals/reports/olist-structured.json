@@ -1,0 +1,341 @@
+{
+  "generated_at": "2026-08-19T18:26:41.147598+08:00",
+  "summary": {
+    "score": 1.0,
+    "passed": 10,
+    "total": 10,
+    "round_cap": 1
+  },
+  "results": [
+    {
+      "id": "review_count_by_score",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN reviews\n  COLLECT score = d0.score INTO qp_group = 1\n  LET review_count = LENGTH(qp_group)\n  SORT score DESC\n  RETURN { score: score, review_count: review_count }",
+        "answer": "各评分等级的评论数量按评分从高到低排列如下：5分有57328条，4分有19142条，3分有8179条，2分有3151条，1分有11424条。共返回5个评分等级。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3739.2,
+        "query_compiled": 0.7,
+        "query_prepared": 3.2,
+        "query_executed": 18.7,
+        "completed": 1701.5
+      },
+      "latency_ms": 5718.4,
+      "attempts": 1
+    },
+    {
+      "id": "monthly_orders_2018",
+      "category": "time_aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN orders\n  FILTER d0.purchased_at != null\n  FILTER DATE_YEAR(d0.purchased_at) == @value_0\n  COLLECT month = DATE_MONTH(d0.purchased_at) INTO qp_group = 1\n  LET order_count = LENGTH(qp_group)\n  SORT month ASC\n  LIMIT 12\n  RETURN { month: month, order_count: order_count }",
+        "answer": "2018年共有10个月存在订单创建记录。代表性数据为：1月7269个订单、2月6728个订单、3月7211个订单。结果显示9月和10月的订单量显著较少（分别为16和4个），且预览中未包含11月和12月的数据。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 4380.4,
+        "query_compiled": 0.7,
+        "query_prepared": 2.9,
+        "query_executed": 67.9,
+        "completed": 1988.3
+      },
+      "latency_ms": 6719.9,
+      "attempts": 1
+    },
+    {
+      "id": "order_count_by_status",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN orders\n  COLLECT order_status = d0.status INTO qp_group = 1\n  LET order_count = LENGTH(qp_group)\n  SORT order_count DESC\n  RETURN { order_status: order_status, order_count: order_count }",
+        "answer": "统计结果显示共有8种订单状态。其中“delivered”状态订单数量最多，为96478条；其次为“shipped”（1107条）和“canceled”（625条）。结果已按订单数量从高到低排序。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3758.3,
+        "query_compiled": 0.6,
+        "query_prepared": 2.0,
+        "query_executed": 21.3,
+        "completed": 1445.8
+      },
+      "latency_ms": 5469.5,
+      "attempts": 1
+    },
+    {
+      "id": "payment_total_by_type",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN payments\n  COLLECT payment_type = d0.type INTO qp_group = { metric_0: d0.value }\n  LET payment_count = LENGTH(qp_group)\n  LET total_amount = SUM(qp_group[*].metric_0)\n  RETURN { payment_type: payment_type, payment_count: payment_count, total_amount: total_amount }",
+        "answer": "查询结果共5行，统计了各支付方式的支付次数与总金额。其中credit_card支付76,795次、总额约12,542,084.19元；boleto支付19,784次、总额约2,869,361.27元；voucher支付5,775次、总额约379,436.87元。此外还包括debit_card和not_defined两种方式。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 4023.3,
+        "query_compiled": 0.6,
+        "query_prepared": 2.3,
+        "query_executed": 55.9,
+        "completed": 2276.0
+      },
+      "latency_ms": 6604.8,
+      "attempts": 1
+    },
+    {
+      "id": "payment_count_by_installments",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN payments\n  FILTER d0.type == @value_0\n  COLLECT installments = d0.installments INTO qp_group = 1\n  LET payment_count = LENGTH(qp_group)\n  RETURN { installments: installments, payment_count: payment_count }",
+        "answer": "查询结果为空，未找到任何使用分期付款的支付记录，因此无法统计不同分期期数的支付笔数。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3610.8,
+        "query_compiled": 0.7,
+        "query_prepared": 4.8,
+        "query_executed": 16.7,
+        "completed": 1170.2
+      },
+      "latency_ms": 5077.6,
+      "attempts": 1
+    },
+    {
+      "id": "top_products_by_item_count",
+      "category": "edge_aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN products\n  FOR e0 IN contains\n    FILTER e0._to == d0._id\n    FOR d1 IN orders\n      FILTER d1._id == e0._from\n  COLLECT product_key = d0._key INTO qp_group = 1\n  LET sales_count = LENGTH(qp_group)\n  SORT sales_count DESC\n  LIMIT 10\n  RETURN { product_key: product_key, sales_count: sales_count }",
+        "answer": "按订单商品项数量计算，销量最高的10个商品已返回。结果共10条记录，前三名商品的销量分别为527、488和484。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3718.3,
+        "query_compiled": 4211.1,
+        "query_prepared": 2.8,
+        "query_executed": 307.5,
+        "completed": 1399.0
+      },
+      "latency_ms": 9794.1,
+      "attempts": 1
+    },
+    {
+      "id": "top_products_by_item_value",
+      "category": "edge_aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN products\n  FOR e0 IN contains\n    FILTER e0._to == d0._id\n    FOR d1 IN orders\n      FILTER d1._id == e0._from\n  COLLECT product_id = d0._id INTO qp_group = { metric_0: e0.price }\n  LET total_sales = SUM(qp_group[*].metric_0)\n  SORT total_sales DESC\n  LIMIT 10\n  RETURN { product_id: product_id, total_sales: total_sales }",
+        "answer": "查询返回了销售额最高的10个商品。其中销售额排名前三的商品ID分别为 products/bb50f2e236e5eea0100680137654686c（63885）、products/6cdd53843498f92890544667809f1595（约54730.2）和 products/d6160fb7873f184099d9bc95e30376af（48899.34）。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3425.3,
+        "query_compiled": 4111.9,
+        "query_prepared": 3.4,
+        "query_executed": 538.3,
+        "completed": 2634.7
+      },
+      "latency_ms": 11051.2,
+      "attempts": 1
+    },
+    {
+      "id": "customer_records_by_state",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN customers\n  COLLECT state = d0.state INTO qp_group = 1\n  LET customer_count = LENGTH(qp_group)\n  SORT customer_count DESC\n  RETURN { state: state, customer_count: customer_count }",
+        "answer": "查询结果共包含27个州的客户记录数量，已按数量从高到低排列。排名前三的州分别为SP（41,746条）、RJ（12,852条）和MG（11,635条）。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3518.2,
+        "query_compiled": 0.6,
+        "query_prepared": 2.2,
+        "query_executed": 24.2,
+        "completed": 1505.4
+      },
+      "latency_ms": 5293.9,
+      "attempts": 1
+    },
+    {
+      "id": "products_by_category",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN products\n  FOR e0 IN belongs_to\n    FILTER e0._from == d0._id\n    FOR d1 IN categories\n      FILTER d1._id == e0._to\n  COLLECT category_name_en = d1.name_en INTO qp_group = 1\n  LET product_count = LENGTH(qp_group)\n  RETURN { category_name_en: category_name_en, product_count: product_count }",
+        "answer": "查询结果共72行，统计了各英文商品类别的商品数量。其中623个商品类别名称为空；代表性类别包括bed_bath_table（3029个）、auto（1900个）和computers_accessories（1639个）。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 3622.2,
+        "query_compiled": 0.8,
+        "query_prepared": 3.9,
+        "query_executed": 139.5,
+        "completed": 1704.4
+      },
+      "latency_ms": 5774.5,
+      "attempts": 1
+    },
+    {
+      "id": "average_review_score",
+      "category": "aggregate",
+      "score": 1.0,
+      "passed": true,
+      "checks": {
+        "terminal": true,
+        "trajectory": true,
+        "query": true
+      },
+      "event_path": [
+        "context_retrieved",
+        "plan_created",
+        "query_compiled",
+        "query_prepared",
+        "query_executed",
+        "completed"
+      ],
+      "artifacts": {
+        "query": "FOR d0 IN reviews\n  COLLECT qp_all = true INTO qp_group = { metric_0: d0.score }\n  LET avg_score = AVERAGE(qp_group[*].metric_0)\n  RETURN { avg_score: avg_score }",
+        "answer": "所有评论的平均评分为4.08642062404257。结果共1行，代表值为avg_score: 4.08642062404257。",
+        "failure": null
+      },
+      "step_latency_ms": {
+        "plan_created": 2699.4,
+        "query_compiled": 0.6,
+        "query_prepared": 2.3,
+        "query_executed": 46.8,
+        "completed": 1465.5
+      },
+      "latency_ms": 4594.2,
+      "attempts": 1
+    }
+  ]
+}

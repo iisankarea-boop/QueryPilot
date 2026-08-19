@@ -1,0 +1,26 @@
+{
+  "dataset_release": "commerce-v2",
+  "summary": {
+    "score": 0.8517,
+    "passed": 22,
+    "total": 30,
+    "round_cap": 1
+  },
+  "static_benchmark": {
+    "name": "BFCL V4 adapter-contract subset",
+    "score": 1.0,
+    "passed": 1,
+    "total": 1,
+    "scope_note": "Not a full BFCL leaderboard score."
+  },
+  "grounded_llm_judge": {
+    "case_id": "paid_order_details",
+    "score": 1.0,
+    "dimensions": {
+      "factuality": 4,
+      "scope_adherence": 4,
+      "refusal_quality": 4,
+      "clarity": 4
+    }
+  }
+}

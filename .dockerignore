@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+infra/data
+infra/backups
+skills-lock.json
+apps/web/node_modules
+apps/web/dist
+apps/web/*.tsbuildinfo

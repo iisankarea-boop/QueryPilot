@@ -1,0 +1,9 @@
+benchmark: BFCL V4
+scope: QueryPilot structured function-calling adapter compatibility
+audited_subset:
+  cases: 1
+  passed: 1
+  score: 1.0
+  confidence_note: This is an adapter-contract subset, not a claim of a full BFCL leaderboard score.
+evidence:
+  - apps/api/tests/test_langchain_model.py::test_query_plan_uses_dashscope_compatible_function_calling

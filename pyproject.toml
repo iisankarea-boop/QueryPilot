@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "querypilot"
+version = "0.1.0"
+description = "A safe, schema-aware NL2AQL agent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "langchain>=1,<2",
+  "langchain-openai>=1,<2",
+  "langgraph>=1,<2",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "pymilvus>=2.5,<3",
+  "python-arango>=8,<9",
+  "PyYAML>=6,<7",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+postgres = [
+  "langgraph-checkpoint-postgres>=2,<4",
+  "psycopg[binary,pool]>=3.2,<4",
+]
+dev = [
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<1",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+  "types-PyYAML>=6,<7",
+]
+
+[project.scripts]
+querypilot = "querypilot.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "apps/api/src"}
+
+[tool.setuptools.packages.find]
+where = ["apps/api/src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+testpaths = ["apps/api/tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["querypilot"]
+
+[[tool.mypy.overrides]]
+module = ["pymilvus", "pymilvus.*"]
+ignore_missing_imports = true

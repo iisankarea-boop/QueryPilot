@@ -1,0 +1,91 @@
+suite: olist_structured_compiler
+cases:
+  - id: review_count_by_score
+    source_id: olist
+    category: aggregate
+    question: 各评分等级分别有多少条评论？按照评分从高到低排列。
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [reviews, score, review_count]
+
+  - id: monthly_orders_2018
+    source_id: olist
+    category: time_aggregate
+    question: 2018 年每个月创建了多少个订单？
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [orders, purchased_at, DATE_YEAR, DATE_MONTH]
+
+  - id: order_count_by_status
+    source_id: olist
+    category: aggregate
+    question: 统计不同订单状态的订单数量，并按照数量从高到低排列。
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [orders, status]
+
+  - id: payment_total_by_type
+    source_id: olist
+    category: aggregate
+    question: 各种支付方式的支付次数和支付总金额分别是多少？
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [payments, type, value]
+
+  - id: payment_count_by_installments
+    source_id: olist
+    category: aggregate
+    question: 使用分期付款的记录中，不同分期期数分别有多少笔支付？
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [payments, installments]
+
+  - id: top_products_by_item_count
+    source_id: olist
+    category: edge_aggregate
+    question: 销量最高的 10 个商品是什么？销量按订单商品项数量计算。
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [contains, _to]
+
+  - id: top_products_by_item_value
+    source_id: olist
+    category: edge_aggregate
+    question: 商品销售额最高的 10 个商品是什么？商品销售额按订单商品项的 price 求和计算。
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [contains, price]
+
+  - id: customer_records_by_state
+    source_id: olist
+    category: aggregate
+    question: 各州的客户记录数量分别是多少？按照数量从高到低排列。
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [customers, state]
+
+  - id: products_by_category
+    source_id: olist
+    category: aggregate
+    question: 每个英文商品类别分别有多少个商品？
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [products, category_name_en]
+
+  - id: average_review_score
+    source_id: olist
+    category: aggregate
+    question: 所有评论的平均评分是多少？
+    expected:
+      terminal_event: completed
+      full_trajectory: true
+      query_contains: [reviews, score, AVERAGE]

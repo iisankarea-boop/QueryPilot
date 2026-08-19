@@ -1,0 +1,193 @@
+name: querypilot
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: querypilot
+      POSTGRES_USER: querypilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U querypilot -d querypilot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+    restart: unless-stopped
+
+  arangodb:
+    image: arangodb:3.12.5
+    environment:
+      ARANGO_ROOT_PASSWORD: ${ARANGO_ROOT_PASSWORD}
+    volumes:
+      - arango-data:/var/lib/arangodb3
+      - arango-apps:/var/lib/arangodb3-apps
+    ports:
+      - "127.0.0.1:8529:8529"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "arangosh --server.endpoint tcp://127.0.0.1:8529 --server.username root --server.password \"$$ARANGO_ROOT_PASSWORD\" --javascript.execute-string 'db._version()'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    mem_limit: 1400m
+    restart: unless-stopped
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.18
+    environment:
+      ETCD_AUTO_COMPACTION_MODE: revision
+      ETCD_AUTO_COMPACTION_RETENTION: "1000"
+      ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+      ETCD_SNAPSHOT_COUNT: "50000"
+    command: >-
+      etcd --advertise-client-urls=http://127.0.0.1:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+    volumes:
+      - etcd-data:/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 320m
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: minio server /minio_data
+    volumes:
+      - minio-data:/minio_data
+    mem_limit: 512m
+    restart: unless-stopped
+
+  milvus-standalone:
+    image: milvusdb/milvus:v2.6.0
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - milvus-data:/var/lib/milvus
+    ports:
+      - "127.0.0.1:19530:19530"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    mem_limit: 2500m
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - ../.env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      arangodb:
+        condition: service_healthy
+      milvus-standalone:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    mem_limit: 850m
+    restart: unless-stopped
+
+  seed:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - ../.env
+    command: ["python", "infra/scripts/seed_arango.py"]
+    depends_on:
+      arangodb:
+        condition: service_healthy
+
+  olist-seed:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - ../.env
+    environment:
+      OLIST_ARANGO_DATABASE: olist
+      OLIST_DATA_DIR: /data
+    volumes:
+      - ./data/olist:/data
+    command: ["python", "infra/scripts/seed_olist.py"]
+    depends_on:
+      arangodb:
+        condition: service_healthy
+
+  support-seed:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - ../.env
+    environment:
+      SUPPORT_ARANGO_DATABASE: support_lab
+    command: ["python", "infra/scripts/seed_support.py"]
+    depends_on:
+      arangodb:
+        condition: service_healthy
+
+  catalog-publish:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - ../.env
+    command: ["querypilot", "catalog-publish"]
+    depends_on:
+      milvus-standalone:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  arango-data:
+  arango-apps:
+  etcd-data:
+  minio-data:
+  milvus-data:

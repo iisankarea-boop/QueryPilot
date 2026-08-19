@@ -1,0 +1,306 @@
+release_id: commerce-v2
+source_id: commerce
+database: commerce
+
+collections:
+  users:
+    description: 电商平台用户
+    fields:
+      name:
+        type: string
+        description: 用户显示名称
+        aliases: [用户名, 客户名]
+      region:
+        type: string
+        description: 用户所在地区
+        aliases: [地区, 省份]
+      created_at:
+        type: datetime
+        description: 用户注册时间，UTC ISO 8601
+        aliases: [注册时间]
+
+  products:
+    description: 可销售商品
+    fields:
+      name:
+        type: string
+        description: 商品名称
+        aliases: [商品]
+      price:
+        type: number
+        description: 商品标价，单位人民币元
+        aliases: [价格, 单价]
+      active:
+        type: boolean
+        description: 商品当前是否上架
+        aliases: [上架状态]
+
+  orders:
+    description: 用户提交的订单，取消订单也保留
+    fields:
+      customer_id:
+        type: string
+        description: 下单客户的用户编号，与 users 文档的 _key 对应
+        aliases: [客户编号, 用户编号]
+      status:
+        type: string
+        description: 订单状态，可选 paid、cancelled、refunded
+        aliases: [订单状态]
+      paid_amount:
+        type: number
+        description: 用户实际支付金额，单位人民币元
+        aliases: [成交额, 实付金额, GMV]
+      created_at:
+        type: datetime
+        description: 订单创建时间，UTC ISO 8601
+        aliases: [下单时间, 订单时间]
+
+  categories:
+    description: 商品分类
+    fields:
+      name:
+        type: string
+        description: 分类名称
+        aliases: [品类, 类目]
+
+edge_collections:
+  placed:
+    description: 用户创建订单的关系边
+    fields: {}
+  contains:
+    description: 订单包含商品的关系边
+    fields:
+      quantity:
+        type: integer
+        description: 订单中的商品数量
+        aliases: [购买数量]
+  belongs_to:
+    description: 商品归属分类的关系边
+    fields: {}
+  viewed:
+    description: 用户浏览商品的关系边
+    fields:
+      viewed_at:
+        type: datetime
+        description: 浏览发生时间，UTC ISO 8601
+        aliases: [浏览时间]
+
+graphs:
+  commerce_graph:
+    edges:
+      placed:
+        from: users
+        to: orders
+      contains:
+        from: orders
+        to: products
+      belongs_to:
+        from: products
+        to: categories
+      viewed:
+        from: users
+        to: products
+
+metrics:
+  gmv:
+    description: 已支付订单的实际成交总额，不包含取消和退款订单
+    expression: SUM(order.paid_amount) with order.status == "paid"
+    aliases: [成交额, 交易总额, GMV]
+  paid_order_count:
+    description: 状态为 paid 的订单数量
+    expression: COUNT(order) with order.status == "paid"
+    aliases: [支付订单数]
+  average_order_value:
+    description: 已支付订单的平均实付金额
+    expression: AVERAGE(order.paid_amount) with order.status == "paid"
+    aliases: [客单价, 平均订单金额]
+  refund_order_count:
+    description: 状态为 refunded 的退款订单数量
+    expression: COUNT(order) with order.status == "refunded"
+    aliases: [退款单数, 退款订单数]
+  active_product_count:
+    description: active 为 true 的当前上架商品数量
+    expression: COUNT(product) with product.active == true
+    aliases: [在售商品数, 上架商品数]
+  customer_lifetime_value:
+    description: 指定客户所有已支付订单的累计实付金额
+    expression: SUM(order.paid_amount) grouped by order.customer_id with order.status == "paid"
+    aliases: [客户价值, 客户累计消费, CLV]
+
+examples:
+  - id: paid_order_details
+    question: 查询已支付订单，返回订单编号、客户编号和实付金额
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.status == @status
+        SORT order.created_at DESC
+        RETURN { order_id: order._key, customer_id: order.customer_id, paid_amount: order.paid_amount }
+  - id: order_count_by_status
+    question: 按订单状态统计订单数量
+    approved: true
+    aql: |
+      FOR order IN orders
+        COLLECT status = order.status WITH COUNT INTO order_count
+        SORT order_count DESC
+        RETURN { status, order_count }
+  - id: daily_gmv
+    question: 按天统计已支付订单成交额
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.status == @status
+        COLLECT day = SUBSTRING(order.created_at, 0, 10)
+          AGGREGATE gmv = SUM(order.paid_amount)
+        SORT day
+        RETURN { day, gmv }
+  - id: average_paid_order_value
+    question: 计算已支付订单的平均客单价
+    approved: true
+    aql: |
+      RETURN FIRST(
+        FOR order IN orders
+          FILTER order.status == @status
+          COLLECT AGGREGATE average_order_value = AVERAGE(order.paid_amount)
+          RETURN average_order_value
+      )
+  - id: high_value_paid_orders
+    question: 查询实付金额超过指定金额的已支付订单
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.status == @status AND order.paid_amount >= @minimum_amount
+        SORT order.paid_amount DESC
+        RETURN order
+  - id: orders_in_date_range
+    question: 查询指定时间范围内创建的订单
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.created_at >= @start_at AND order.created_at < @end_at
+        SORT order.created_at DESC
+        RETURN order
+  - id: refunded_orders
+    question: 查询退款订单及其客户编号
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.status == @status
+        RETURN { order_id: order._key, customer_id: order.customer_id, created_at: order.created_at }
+  - id: active_products
+    question: 查询当前上架的商品并按价格降序排列
+    approved: true
+    aql: |
+      FOR product IN products
+        FILTER product.active == true
+        SORT product.price DESC
+        RETURN product
+  - id: products_by_category
+    question: 查询指定分类下的商品
+    approved: true
+    aql: |
+      FOR category IN categories
+        FILTER category._key == @category_key
+        FOR product IN 1..1 INBOUND category belongs_to
+          SORT product.price DESC
+          RETURN product
+  - id: customer_order_history
+    question: 查询指定客户的订单历史
+    approved: true
+    aql: |
+      FOR user IN users
+        FILTER user._key == @user_key
+        FOR order IN 1..1 OUTBOUND user placed
+          SORT order.created_at DESC
+          RETURN order
+  - id: top_customers_by_spend
+    question: 查询累计消费金额最高的客户
+    approved: true
+    aql: |
+      FOR user IN users
+        LET paid_orders = FOR order IN 1..1 OUTBOUND user placed FILTER order.status == @status RETURN order
+        LET total_spend = SUM(paid_orders[*].paid_amount)
+        FILTER total_spend > 0
+        SORT total_spend DESC
+        RETURN { customer_id: user._key, customer_name: user.name, total_spend }
+  - id: paid_orders_by_region
+    question: 按地区统计已支付订单成交额
+    approved: true
+    aql: |
+      FOR user IN users
+        FOR order IN 1..1 OUTBOUND user placed
+          FILTER order.status == @status
+          COLLECT region = user.region AGGREGATE gmv = SUM(order.paid_amount)
+          SORT gmv DESC
+          RETURN { region, gmv }
+  - id: new_users_by_region
+    question: 按地区统计指定时间后注册的新用户数
+    approved: true
+    aql: |
+      FOR user IN users
+        FILTER user.created_at >= @start_at
+        COLLECT region = user.region WITH COUNT INTO user_count
+        SORT user_count DESC
+        RETURN { region, user_count }
+  - id: top_selling_products
+    question: 按购买数量查询最畅销商品
+    approved: true
+    aql: |
+      FOR item IN contains
+        COLLECT product_id = item._to AGGREGATE quantity = SUM(item.quantity)
+        SORT quantity DESC
+        LIMIT 20
+        FOR product IN products
+          FILTER product._id == product_id
+          RETURN {
+            product_id: product._key,
+            product_name: product.name,
+            price: product.price,
+            quantity
+          }
+  - id: product_buyers
+    question: 查询购买过指定商品的客户
+    approved: true
+    aql: |
+      FOR product IN products
+        FILTER product._key == @product_key
+        FOR order IN 1..1 INBOUND product contains
+          FOR user IN 1..1 INBOUND order placed
+            COLLECT customer_id = user._key, customer_name = user.name
+            RETURN { customer_id, customer_name }
+  - id: category_revenue
+    question: 按商品分类统计已支付订单的销售额
+    approved: true
+    aql: |
+      FOR order IN orders
+        FILTER order.status == @status
+        FOR product, contains_edge IN 1..1 OUTBOUND order contains
+          FOR category IN 1..1 OUTBOUND product belongs_to
+            COLLECT category_name = category.name
+              AGGREGATE revenue = SUM(product.price * contains_edge.quantity)
+            SORT revenue DESC
+            RETURN { category_name, revenue }
+  - id: recent_product_views
+    question: 查询指定时间后的商品浏览记录
+    approved: true
+    aql: |
+      FOR view IN viewed
+        FILTER view.viewed_at >= @start_at
+        SORT view.viewed_at DESC
+        RETURN { customer_id: PARSE_IDENTIFIER(view._from).key, product_id: PARSE_IDENTIFIER(view._to).key, viewed_at: view.viewed_at }
+  - id: users_without_orders
+    question: 查询从未下过订单的用户
+    approved: true
+    aql: |
+      FOR user IN users
+        LET order_count = LENGTH(FOR order IN 1..1 OUTBOUND user placed LIMIT 1 RETURN 1)
+        FILTER order_count == 0
+        RETURN user
+  - id: products_viewed_not_bought
+    question: 查询浏览但未购买指定商品的用户
+    approved: true
+    aql: |
+      FOR user IN users
+        FILTER LENGTH(FOR product IN 1..1 OUTBOUND user viewed FILTER product._key == @product_key RETURN 1) > 0
+        FILTER LENGTH(FOR order IN 1..1 OUTBOUND user placed FOR product IN 1..1 OUTBOUND order contains FILTER product._key == @product_key RETURN 1) == 0
+        RETURN user
