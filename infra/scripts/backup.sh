@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BACKUP_ROOT="${BACKUP_ROOT:-${ROOT_DIR}/infra/backups}"
+COMPOSE_OVERRIDE_FILE="${COMPOSE_OVERRIDE_FILE:-${ROOT_DIR}/infra/compose.prod.yaml}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
@@ -14,6 +15,10 @@ if ! [[ "${RETENTION_DAYS}" =~ ^[0-9]+$ ]]; then
   echo "BACKUP_RETENTION_DAYS must be a non-negative integer" >&2
   exit 1
 fi
+if [[ ! -f "${COMPOSE_OVERRIDE_FILE}" ]]; then
+  echo "Compose override file does not exist: ${COMPOSE_OVERRIDE_FILE}" >&2
+  exit 1
+fi
 
 mkdir -p "${BACKUP_ROOT}/postgres" "${BACKUP_ROOT}/arango"
 BACKUP_ROOT="$(cd "${BACKUP_ROOT}" && pwd)"
@@ -23,7 +28,7 @@ COMPOSE=(
   docker compose
   --env-file "${ROOT_DIR}/.env"
   -f "${ROOT_DIR}/infra/compose.yaml"
-  -f "${ROOT_DIR}/infra/compose.prod.yaml"
+  -f "${COMPOSE_OVERRIDE_FILE}"
 )
 
 POSTGRES_FILE="querypilot-${TIMESTAMP}.dump"

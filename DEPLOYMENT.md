@@ -4,6 +4,10 @@ This runbook targets one Ubuntu 22.04/24.04 server with 4 vCPU, 8 GiB RAM, 60 Gi
 Docker Engine, Docker Compose v2, and a domain name. The LLM and embedding models remain
 external APIs.
 
+For a server without a domain, use `infra/compose.private.yaml`. It keeps the API and data
+ports on `127.0.0.1`; access the workbench only through an SSH tunnel. Do not expose port
+`8000` in the cloud firewall because this mode has no browser authentication or TLS.
+
 ## 1. Prepare the server
 
 Point the domain's `A` record at the server before starting Caddy. In the cloud firewall,
@@ -84,6 +88,22 @@ bash infra/scripts/verify-deployment.sh https://querypilot.example.com
 The workbench is protected by browser Basic Auth. Health endpoints intentionally remain
 unauthenticated for monitoring and reveal only dependency names and coarse status.
 
+For a private deployment without a domain, replace `infra/compose.prod.yaml` in the commands
+above with `infra/compose.private.yaml`, start the stack, and verify it on the server:
+
+```bash
+docker compose --env-file .env \
+  -f infra/compose.yaml -f infra/compose.private.yaml up -d --remove-orphans
+curl -fsS http://127.0.0.1:8000/health/ready
+```
+
+From the operator workstation, keep this SSH session open and browse to
+`http://127.0.0.1:8001/`:
+
+```bash
+ssh -L 8001:127.0.0.1:8000 ubuntu@server-ip
+```
+
 ## 4. Backups
 
 Run one backup and inspect both outputs before scheduling it:
@@ -91,6 +111,12 @@ Run one backup and inspect both outputs before scheduling it:
 ```bash
 bash infra/scripts/backup.sh
 du -sh infra/backups/postgres infra/backups/arango
+```
+
+In private mode, set the matching Compose override:
+
+```bash
+COMPOSE_OVERRIDE_FILE=infra/compose.private.yaml bash infra/scripts/backup.sh
 ```
 
 Schedule a daily backup at 03:15 and retain seven days:
