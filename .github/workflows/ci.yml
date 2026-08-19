@@ -66,9 +66,10 @@ jobs:
             exit 1
           fi
       - name: Validate production Compose merge
-        run: >-
-          docker compose --env-file .env.production.example
-          -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
+        run: |
+          cp .env.production.example .env
+          docker compose --env-file .env.production.example \
+            -f infra/compose.yaml -f infra/compose.prod.yaml config --quiet
       - name: Reject likely committed API keys
         run: |
           if rg -n 'sk-[A-Za-z0-9_-]{16,}' --glob '*.py' --glob '*.ts' --glob '*.tsx'; then
