@@ -62,6 +62,12 @@ Place the hash in `.env` inside single quotes so its `$` characters remain liter
 DEMO_PASSWORD_HASH='$2a$14$...'
 ```
 
+If a certificate was issued outside Caddy, place its full chain and private key at
+`infra/certs/tls.crt` and `infra/certs/tls.key`. Keep the directory out of Git, set the key
+to mode `600`, and add `-f infra/compose.manual-tls.yaml` to production Compose commands.
+The certificate SAN must cover every hostname in `DOMAIN`. External certificates do not
+renew through Caddy; replace them before their expiry date and recreate the `caddy` container.
+
 ## 3. First deployment
 
 Validate, build, start, and wait for all dependencies:

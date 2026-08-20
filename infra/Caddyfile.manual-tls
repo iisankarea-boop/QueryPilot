@@ -1,0 +1,36 @@
+{
+	admin off
+}
+
+{$DOMAIN} {
+	tls /certs/tls.crt /certs/tls.key
+	encode zstd gzip
+
+	log {
+		output stdout
+		format json
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	@health path /health/live /health/ready
+	handle @health {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		basic_auth {
+			{$DEMO_USERNAME} {$DEMO_PASSWORD_HASH}
+		}
+
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+}

@@ -14,6 +14,8 @@ build/
 .vscode/
 infra/data/
 infra/backups/
+infra/certs/
+*_nginx.zip
 .docker-config/
 node_modules/
 apps/web/dist/
